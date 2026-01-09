@@ -389,22 +389,22 @@
                     <div class="stats-container">
                         <div class="stat-card">
                             <div class="stat-title">Total Registradas</div>
-                            <div class="stat-value" id="total-count">12</div>
+                            <div class="stat-value" id="total-count">0</div>
                             <div class="stat-title">Condiciones</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-title">Pendientes</div>
-                            <div class="stat-value" id="pending-count">5</div>
+                            <div class="stat-value" id="pending-count">0</div>
                             <div class="stat-title">Por reparar</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-title">En Proceso</div>
-                            <div class="stat-value" id="process-count">3</div>
+                            <div class="stat-value" id="process-count">0</div>
                             <div class="stat-title">En reparación</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-title">Reparadas</div>
-                            <div class="stat-value" id="repaired-count">4</div>
+                            <div class="stat-value" id="repaired-count">0</div>
                             <div class="stat-title">Completadas</div>
                         </div>
                     </div>
@@ -605,97 +605,8 @@
     </div>
 
     <script>
-        // Datos de ejemplo para la aplicación
-        let unsafeConditions = [
-            {
-                id: 1,
-                description: "Cableado eléctrico expuesto en panel de control",
-                location: "Sala de máquinas, Planta Baja",
-                category: "electricidad",
-                riskLevel: "alto",
-                date: "2023-10-15",
-                status: "reparado",
-                repairedDate: "2023-10-18",
-                reportedBy: "Juan Pérez"
-            },
-            {
-                id: 2,
-                description: "Barandilla faltante en plataforma de trabajo en alturas",
-                location: "Área de almacenamiento, Nivel 2",
-                category: "alturas",
-                riskLevel: "critico",
-                date: "2023-10-20",
-                status: "pendiente",
-                repairedDate: null,
-                reportedBy: "María González"
-            },
-            {
-                id: 3,
-                description: "Fuga en tubería de químicos corrosivos",
-                location: "Laboratorio de pruebas",
-                category: "quimico",
-                riskLevel: "alto",
-                date: "2023-10-18",
-                status: "en proceso",
-                repairedDate: null,
-                reportedBy: "Carlos Ruiz"
-            },
-            {
-                id: 4,
-                description: "Extintor vencido y sin mantenimiento",
-                location: "Pasillo principal, Edificio A",
-                category: "incendio",
-                riskLevel: "medio",
-                date: "2023-10-22",
-                status: "pendiente",
-                repairedDate: null,
-                reportedBy: "Ana López"
-            },
-            {
-                id: 5,
-                description: "Piso resbaladizo por aceite derramado",
-                location: "Taller de mantenimiento",
-                category: "otro",
-                riskLevel: "medio",
-                date: "2023-10-21",
-                status: "reparado",
-                repairedDate: "2023-10-21",
-                reportedBy: "Luis Fernández"
-            },
-            {
-                id: 6,
-                description: "Equipo de protección personal incompleto",
-                location: "Área de pintura",
-                category: "otro",
-                riskLevel: "bajo",
-                date: "2023-10-19",
-                status: "pendiente",
-                repairedDate: null,
-                reportedBy: "Pedro Martínez"
-            },
-            {
-                id: 7,
-                description: "Ruido excesivo en compresor principal",
-                location: "Sala de compresores",
-                category: "mecanico",
-                riskLevel: "medio",
-                date: "2023-10-17",
-                status: "en proceso",
-                repairedDate: null,
-                reportedBy: "Sofía Ramírez"
-            },
-            {
-                id: 8,
-                description: "Mesa de trabajo con bordes filosos expuestos",
-                location: "Taller de carpintería",
-                category: "mecanico",
-                riskLevel: "bajo",
-                date: "2023-10-16",
-                status: "reparado",
-                repairedDate: "2023-10-19",
-                reportedBy: "Roberto Díaz"
-            }
-        ];
+        // 🛠️ CAMBIO 1 — Base de datos con LocalStorage
+        let unsafeConditions = JSON.parse(localStorage.getItem("unsafeConditions")) || [];
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
@@ -749,10 +660,13 @@
                     date: new Date().toISOString().split('T')[0],
                     status: "pendiente",
                     repairedDate: null,
-                    reportedBy: "Juan Pérez"
+                    reportedBy: "Usuario Actual"
                 };
                 
                 unsafeConditions.unshift(newCondition);
+                
+                // 🛠️ CAMBIO 2 — Guardar en LocalStorage
+                localStorage.setItem("unsafeConditions", JSON.stringify(unsafeConditions));
                 
                 // Mostrar mensaje de éxito
                 alert('¡Condición insegura registrada exitosamente!');
@@ -982,6 +896,9 @@
                 if (newStatus === 'reparado') {
                     condition.repairedDate = new Date().toISOString().split('T')[0];
                 }
+                
+                // 🛠️ CAMBIO 3 — Guardar en LocalStorage
+                localStorage.setItem("unsafeConditions", JSON.stringify(unsafeConditions));
                 
                 // Actualizar todas las vistas
                 updateDashboard();
