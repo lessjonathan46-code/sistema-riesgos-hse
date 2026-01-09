@@ -611,19 +611,31 @@
         const SUPABASE_URL = "https://lsmrwfkwqpvgqzzzbcbl.supabase.co";
         const SUPABASE_KEY = "sb_publishable_mIAklSCqvZDPwkpm1OVaYA_Ml_4OuUQ";
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Crear cliente de Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // 🧩 3️⃣ Reemplaza tu LocalStorage por Supabase
         let unsafeConditions = [];
 
         async function loadRisks(){
-            const { data, error } = await supabase
-                .from("risks")
-                .select("*")
-                .order("id", { ascending:false });
+            try {
+                const { data, error } = await supabase
+                    .from("risks")
+                    .select("*")
+                    .order("id", { ascending: false });
 
-            unsafeConditions = data || [];
-            render();
+                if (error) {
+                    console.error("Error al cargar datos:", error);
+                    unsafeConditions = [];
+                } else {
+                    unsafeConditions = data || [];
+                }
+                render();
+            } catch (error) {
+                console.error("Error en loadRisks:", error);
+                unsafeConditions = [];
+                render();
+            }
         }
 
         // Cargar datos al iniciar
@@ -687,16 +699,23 @@
                     const riskLevel = document.getElementById('risk-level').value;
                     
                     // 🧩 4️⃣ Guardar en Supabase
-                    const { error } = await supabase.from("risks").insert([{
-                        description,
-                        location,
-                        category,
-                        risk_level: riskLevel,
-                        status: "pendiente",
-                        date: new Date().toISOString().split("T")[0]
-                    }]);
+                    const { error } = await supabase
+                        .from("risks")
+                        .insert([
+                            {
+                                description: description,
+                                location: location,
+                                category: category,
+                                risk_level: riskLevel,
+                                status: "pendiente",
+                                date: new Date().toISOString().split("T")[0]
+                            }
+                        ]);
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error("Error Supabase:", error);
+                        throw new Error("Error de Supabase: " + error.message);
+                    }
 
                     // Recargar datos desde Supabase
                     await loadRisks();
@@ -712,7 +731,7 @@
                     
                 } catch (error) {
                     console.error('Error al guardar:', error);
-                    alert('Error al guardar el registro. Por favor, intente nuevamente.');
+                    alert('Error al guardar el registro: ' + error.message);
                 } finally {
                     // Restaurar botón
                     submitBtn.disabled = false;
@@ -935,7 +954,7 @@
                 alert(`Estado actualizado a: ${newStatus}`);
             } catch (error) {
                 console.error('Error al actualizar estado:', error);
-                alert('Error al actualizar el estado. Por favor, intente nuevamente.');
+                alert('Error al actualizar el estado: ' + error.message);
             }
         }
 
