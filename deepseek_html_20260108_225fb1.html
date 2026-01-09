@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registro de Condiciones Inseguras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --safe: #2ecc71;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            font-size: 28px;
+            color: var(--secondary);
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .sidebar {
+            flex: 1;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .main-panel {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: var(--secondary);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d35400;
+        }
+
+        .btn-safe {
+            background-color: var(--safe);
+            color: white;
+        }
+
+        .btn-safe:hover {
+            background-color: #27ae60;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pendiente {
+            background-color: rgba(243, 156, 18, 0.2);
+            color: #e67e22;
+        }
+
+        .status-reparado {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+        }
+
+        .status-en-proceso {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: #2980b9;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-bottom: 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border-radius: 5px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover, .nav-menu a.active {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: var(--secondary);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background-color: var(--light);
+            color: var(--primary);
+            text-align: left;
+            padding: 12px 15px;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-hard-hat"></i>
+                    <h1>SafeMaint - Condiciones Inseguras</h1>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <aside class="sidebar">
+                <nav>
+                    <ul class="nav-menu">
+                        <li><a href="#" class="active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+                        <li><a href="#" data-page="registro"><i class="fas fa-plus-circle"></i> Nuevo Registro</a></li>
+                        <li><a href="#" data-page="historial"><i class="fas fa-history"></i> Historial</a></li>
+                        <li><a href="#" data-page="analisis"><i class="fas fa-chart-bar"></i> Análisis de Datos</a></li>
+                        <li><a href="#" data-page="reportes"><i class="fas fa-file-alt"></i> Reportes</a></li>
+                    </ul>
+                </nav>
+
+                <div class="card" style="margin-top: 30px;">
+                    <h3><i class="fas fa-info-circle"></i> Información Rápida</h3>
+                    <p style="margin-top: 10px; font-size: 14px;">
+                        <strong>Instrucciones:</strong> Use esta aplicación para registrar condiciones inseguras encontradas durante sus labores de mantenimiento.
+                    </p>
+                    <div style="margin-top: 15px; padding: 10px; background-color: rgba(243, 156, 18, 0.1); border-radius: 5px;">
+                        <p style="font-size: 12px; color: #e67e22;">
+                            <strong><i class="fas fa-exclamation-triangle"></i> Importante:</strong> Todas las condiciones inseguras deben ser reportadas inmediatamente.
+                        </p>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main-panel">
+                <!-- Panel del Dashboard -->
+                <div id="dashboard-page" class="page active">
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-title">Total Registradas</div>
+                            <div class="stat-value" id="total-count">12</div>
+                            <div class="stat-title">Condiciones</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Pendientes</div>
+                            <div class="stat-value" id="pending-count">5</div>
+                            <div class="stat-title">Por reparar</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">En Proceso</div>
+                            <div class="stat-value" id="process-count">3</div>
+                            <div class="stat-title">En reparación</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Reparadas</div>
+                            <div class="stat-value" id="repaired-count">4</div>
+                            <div class="stat-title">Completadas</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2><i class="fas fa-tasks"></i> Actividades Recientes</h2>
+                        <div class="table-container">
+                            <table id="recent-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Descripción</th>
+                                        <th>Ubicación</th>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Datos cargados por JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Registro -->
+                <div id="registro-page" class="page" style="display: none;">
+                    <div class="card">
+                        <h2><i class="fas fa-plus-circle"></i> Registrar Nueva Condición Insegura</h2>
+                        <form id="report-form">
+                            <div class="form-group">
+                                <label for="description">Descripción de la condición insegura *</label>
+                                <textarea class="form-control" id="description" rows="3" placeholder="Describa detalladamente la condición insegura observada..." required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="location">Ubicación *</label>
+                                <input type="text" class="form-control" id="location" placeholder="Ej: Área de producción, Línea 3" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="category">Categoría *</label>
+                                <select class="form-control" id="category" required>
+                                    <option value="">Seleccione una categoría</option>
+                                    <option value="electricidad">Riesgo eléctrico</option>
+                                    <option value="mecanico">Riesgo mecánico</option>
+                                    <option value="alturas">Trabajo en alturas</option>
+                                    <option value="quimico">Riesgo químico</option>
+                                    <option value="incendio">Riesgo de incendio</option>
+                                    <option value="ergonomico">Riesgo ergonómico</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="risk-level">Nivel de Riesgo *</label>
+                                <select class="form-control" id="risk-level" required>
+                                    <option value="">Seleccione el nivel de riesgo</option>
+                                    <option value="bajo">Bajo</option>
+                                    <option value="medio">Medio</option>
+                                    <option value="alto">Alto</option>
+                                    <option value="critico">Crítico</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="photo">Foto (opcional)</label>
+                                <input type="file" class="form-control" id="photo" accept="image/*">
+                                <small style="color: #7f8c8d;">Puede adjuntar una foto de la condición insegura</small>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Guardar Registro
+                                </button>
+                                <button type="reset" class="btn">
+                                    <i class="fas fa-undo"></i> Limpiar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Panel de Historial -->
+                <div id="historial-page" class="page" style="display: none;">
+                    <div class="card">
+                        <h2><i class="fas fa-history"></i> Historial de Condiciones Inseguras</h2>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                            <div>
+                                <button class="btn" id="filter-all">Todos</button>
+                                <button class="btn btn-warning" id="filter-pending">Pendientes</button>
+                                <button class="btn btn-primary" id="filter-process">En Proceso</button>
+                                <button class="btn btn-safe" id="filter-repaired">Reparados</button>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control" id="search-input" placeholder="Buscar..." style="width: 200px;">
+                            </div>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Descripción</th>
+                                        <th>Ubicación</th>
+                                        <th>Categoría</th>
+                                        <th>Fecha</th>
+                                        <th>Riesgo</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Datos cargados por JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Análisis -->
+                <div id="analisis-page" class="page" style="display: none;">
+                    <div class="card">
+                        <h2><i class="fas fa-chart-bar"></i> Análisis de Datos</h2>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <select class="form-control" id="analysis-type" style="width: 200px;">
+                                <option value="category">Por Categoría</option>
+                                <option value="risk">Por Nivel de Riesgo</option>
+                                <option value="status">Por Estado</option>
+                                <option value="month">Por Mes</option>
+                            </select>
+                            <select class="form-control" id="time-period" style="width: 200px;">
+                                <option value="all">Todo el tiempo</option>
+                                <option value="month">Último mes</option>
+                                <option value="quarter">Último trimestre</option>
+                                <option value="year">Último año</option>
+                            </select>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <canvas id="data-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><i class="fas fa-lightbulb"></i> Recomendaciones Basadas en Análisis</h2>
+                        <div id="recommendations">
+                            <!-- Recomendaciones cargadas por JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Reportes -->
+                <div id="reportes-page" class="page" style="display: none;">
+                    <div class="card">
+                        <h2><i class="fas fa-file-alt"></i> Generar Reportes</h2>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+                            <div class="card" style="text-align: center;">
+                                <i class="fas fa-clipboard-list" style="font-size: 48px; color: var(--secondary); margin-bottom: 15px;"></i>
+                                <h3>Reporte Semanal</h3>
+                                <p style="margin: 15px 0; color: #7f8c8d;">Genera un reporte de todas las condiciones inseguras registradas en la última semana.</p>
+                                <button class="btn btn-primary" id="generate-weekly">
+                                    <i class="fas fa-download"></i> Generar
+                                </button>
+                            </div>
+                            
+                            <div class="card" style="text-align: center;">
+                                <i class="fas fa-chart-pie" style="font-size: 48px; color: var(--secondary); margin-bottom: 15px;"></i>
+                                <h3>Reporte de Análisis</h3>
+                                <p style="margin: 15px 0; color: #7f8c8d;">Reporte detallado con análisis estadístico de condiciones por categoría y riesgo.</p>
+                                <button class="btn btn-primary" id="generate-analysis">
+                                    <i class="fas fa-download"></i> Generar
+                                </button>
+                            </div>
+                            
+                            <div class="card" style="text-align: center;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 15px;"></i>
+                                <h3>Reporte de Pendientes</h3>
+                                <p style="margin: 15px 0; color: #7f8c8d;">Lista de condiciones inseguras pendientes por reparar con nivel de prioridad.</p>
+                                <button class="btn btn-warning" id="generate-pending">
+                                    <i class="fas fa-download"></i> Generar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <footer class="footer">
+            <p>SafeMaint - Sistema de Registro de Condiciones Inseguras &copy; 2023</p>
+            <p style="font-size: 14px; margin-top: 5px;">Para uso exclusivo del departamento de mantenimiento</p>
+        </footer>
+    </div>
+
+    <script>
+        // Datos de ejemplo para la aplicación
+        let unsafeConditions = [
+            {
+                id: 1,
+                description: "Cableado eléctrico expuesto en panel de control",
+                location: "Sala de máquinas, Planta Baja",
+                category: "electricidad",
+                riskLevel: "alto",
+                date: "2023-10-15",
+                status: "reparado",
+                repairedDate: "2023-10-18",
+                reportedBy: "Juan Pérez"
+            },
+            {
+                id: 2,
+                description: "Barandilla faltante en plataforma de trabajo en alturas",
+                location: "Área de almacenamiento, Nivel 2",
+                category: "alturas",
+                riskLevel: "critico",
+                date: "2023-10-20",
+                status: "pendiente",
+                repairedDate: null,
+                reportedBy: "María González"
+            },
+            {
+                id: 3,
+                description: "Fuga en tubería de químicos corrosivos",
+                location: "Laboratorio de pruebas",
+                category: "quimico",
+                riskLevel: "alto",
+                date: "2023-10-18",
+                status: "en proceso",
+                repairedDate: null,
+                reportedBy: "Carlos Ruiz"
+            },
+            {
+                id: 4,
+                description: "Extintor vencido y sin mantenimiento",
+                location: "Pasillo principal, Edificio A",
+                category: "incendio",
+                riskLevel: "medio",
+                date: "2023-10-22",
+                status: "pendiente",
+                repairedDate: null,
+                reportedBy: "Ana López"
+            },
+            {
+                id: 5,
+                description: "Piso resbaladizo por aceite derramado",
+                location: "Taller de mantenimiento",
+                category: "otro",
+                riskLevel: "medio",
+                date: "2023-10-21",
+                status: "reparado",
+                repairedDate: "2023-10-21",
+                reportedBy: "Luis Fernández"
+            },
+            {
+                id: 6,
+                description: "Equipo de protección personal incompleto",
+                location: "Área de pintura",
+                category: "otro",
+                riskLevel: "bajo",
+                date: "2023-10-19",
+                status: "pendiente",
+                repairedDate: null,
+                reportedBy: "Pedro Martínez"
+            },
+            {
+                id: 7,
+                description: "Ruido excesivo en compresor principal",
+                location: "Sala de compresores",
+                category: "mecanico",
+                riskLevel: "medio",
+                date: "2023-10-17",
+                status: "en proceso",
+                repairedDate: null,
+                reportedBy: "Sofía Ramírez"
+            },
+            {
+                id: 8,
+                description: "Mesa de trabajo con bordes filosos expuestos",
+                location: "Taller de carpintería",
+                category: "mecanico",
+                riskLevel: "bajo",
+                date: "2023-10-16",
+                status: "reparado",
+                repairedDate: "2023-10-19",
+                reportedBy: "Roberto Díaz"
+            }
+        ];
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navegación entre páginas
+            const navLinks = document.querySelectorAll('.nav-menu a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('data-page');
+                    
+                    // Actualizar navegación activa
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Mostrar la página correspondiente
+                    document.querySelectorAll('.page').forEach(page => {
+                        page.style.display = 'none';
+                    });
+                    
+                    document.getElementById(`${pageId}-page`).style.display = 'block';
+                    
+                    // Actualizar datos según la página
+                    if (pageId === 'dashboard') {
+                        updateDashboard();
+                    } else if (pageId === 'historial') {
+                        updateHistoryTable();
+                    } else if (pageId === 'analisis') {
+                        updateAnalysisChart();
+                        updateRecommendations();
+                    }
+                });
+            });
+
+            // Manejar el formulario de registro
+            document.getElementById('report-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Obtener valores del formulario
+                const description = document.getElementById('description').value;
+                const location = document.getElementById('location').value;
+                const category = document.getElementById('category').value;
+                const riskLevel = document.getElementById('risk-level').value;
+                
+                // Crear nuevo registro
+                const newCondition = {
+                    id: unsafeConditions.length + 1,
+                    description: description,
+                    location: location,
+                    category: category,
+                    riskLevel: riskLevel,
+                    date: new Date().toISOString().split('T')[0],
+                    status: "pendiente",
+                    repairedDate: null,
+                    reportedBy: "Juan Pérez"
+                };
+                
+                unsafeConditions.unshift(newCondition);
+                
+                // Mostrar mensaje de éxito
+                alert('¡Condición insegura registrada exitosamente!');
+                
+                // Limpiar formulario
+                this.reset();
+                
+                // Actualizar dashboard si está visible
+                if (document.getElementById('dashboard-page').style.display !== 'none') {
+                    updateDashboard();
+                }
+                
+                // Ir al dashboard
+                document.querySelector('.nav-menu a[data-page="dashboard"]').click();
+            });
+
+            // Filtros para la tabla de historial
+            document.getElementById('filter-all').addEventListener('click', function() {
+                updateHistoryTable('all');
+            });
+            
+            document.getElementById('filter-pending').addEventListener('click', function() {
+                updateHistoryTable('pendiente');
+            });
+            
+            document.getElementById('filter-process').addEventListener('click', function() {
+                updateHistoryTable('en proceso');
+            });
+            
+            document.getElementById('filter-repaired').addEventListener('click', function() {
+                updateHistoryTable('reparado');
+            });
+            
+            // Búsqueda en la tabla de historial
+            document.getElementById('search-input').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const filtered = unsafeConditions.filter(condition => 
+                    condition.description.toLowerCase().includes(searchTerm) || 
+                    condition.location.toLowerCase().includes(searchTerm) ||
+                    condition.category.toLowerCase().includes(searchTerm)
+                );
+                renderHistoryTable(filtered);
+            });
+
+            // Botones para generar reportes
+            document.getElementById('generate-weekly').addEventListener('click', function() {
+                alert('Reporte semanal generado y descargado como PDF.');
+            });
+            
+            document.getElementById('generate-analysis').addEventListener('click', function() {
+                alert('Reporte de análisis generado y descargado como PDF.');
+            });
+            
+            document.getElementById('generate-pending').addEventListener('click', function() {
+                alert('Reporte de pendientes generado y descargado como PDF.');
+            });
+
+            // Inicializar dashboard
+            updateDashboard();
+            updateHistoryTable();
+            updateAnalysisChart();
+            updateRecommendations();
+        });
+
+        // Actualizar el dashboard
+        function updateDashboard() {
+            // Calcular estadísticas
+            const total = unsafeConditions.length;
+            const pending = unsafeConditions.filter(c => c.status === 'pendiente').length;
+            const process = unsafeConditions.filter(c => c.status === 'en proceso').length;
+            const repaired = unsafeConditions.filter(c => c.status === 'reparado').length;
+            
+            // Actualizar valores en la interfaz
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('process-count').textContent = process;
+            document.getElementById('repaired-count').textContent = repaired;
+            
+            // Actualizar tabla de actividades recientes
+            const recentTable = document.querySelector('#recent-table tbody');
+            recentTable.innerHTML = '';
+            
+            // Mostrar las 5 más recientes
+            const recentConditions = [...unsafeConditions]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 5);
+            
+            recentConditions.forEach(condition => {
+                const row = document.createElement('tr');
+                
+                // Obtener nombre de categoría
+                const categoryNames = {
+                    electricidad: "Eléctrico",
+                    mecanico: "Mecánico",
+                    alturas: "Alturas",
+                    quimico: "Químico",
+                    incendio: "Incendio",
+                    ergonomico: "Ergonómico",
+                    otro: "Otro"
+                };
+                
+                // Obtener etiqueta de estado
+                let statusBadge = '';
+                if (condition.status === 'pendiente') {
+                    statusBadge = '<span class="status-badge status-pendiente">Pendiente</span>';
+                } else if (condition.status === 'en proceso') {
+                    statusBadge = '<span class="status-badge status-en-proceso">En Proceso</span>';
+                } else {
+                    statusBadge = '<span class="status-badge status-reparado">Reparado</span>';
+                }
+                
+                row.innerHTML = `
+                    <td>#${condition.id}</td>
+                    <td>${condition.description.substring(0, 50)}...</td>
+                    <td>${condition.location}</td>
+                    <td>${condition.date}</td>
+                    <td>${statusBadge}</td>
+                `;
+                
+                recentTable.appendChild(row);
+            });
+        }
+
+        // Actualizar la tabla de historial
+        function updateHistoryTable(filter = 'all') {
+            let filteredConditions = [...unsafeConditions];
+            
+            if (filter !== 'all') {
+                filteredConditions = unsafeConditions.filter(condition => condition.status === filter);
+            }
+            
+            // Ordenar por fecha (más recientes primero)
+            filteredConditions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            renderHistoryTable(filteredConditions);
+        }
+
+        // Renderizar la tabla de historial
+        function renderHistoryTable(conditions) {
+            const historyTable = document.querySelector('#history-table tbody');
+            historyTable.innerHTML = '';
+            
+            conditions.forEach(condition => {
+                const row = document.createElement('tr');
+                
+                // Obtener nombre de categoría
+                const categoryNames = {
+                    electricidad: "Eléctrico",
+                    mecanico: "Mecánico",
+                    alturas: "Alturas",
+                    quimico: "Químico",
+                    incendio: "Incendio",
+                    ergonomico: "Ergonómico",
+                    otro: "Otro"
+                };
+                
+                // Obtener etiqueta de riesgo
+                let riskBadge = '';
+                if (condition.riskLevel === 'bajo') {
+                    riskBadge = '<span style="color:#27ae60; font-weight:bold;">Bajo</span>';
+                } else if (condition.riskLevel === 'medio') {
+                    riskBadge = '<span style="color:#f39c12; font-weight:bold;">Medio</span>';
+                } else if (condition.riskLevel === 'alto') {
+                    riskBadge = '<span style="color:#e74c3c; font-weight:bold;">Alto</span>';
+                } else {
+                    riskBadge = '<span style="color:#c0392b; font-weight:bold;">Crítico</span>';
+                }
+                
+                // Obtener etiqueta de estado
+                let statusBadge = '';
+                if (condition.status === 'pendiente') {
+                    statusBadge = '<span class="status-badge status-pendiente">Pendiente</span>';
+                } else if (condition.status === 'en proceso') {
+                    statusBadge = '<span class="status-badge status-en-proceso">En Proceso</span>';
+                } else {
+                    statusBadge = '<span class="status-badge status-reparado">Reparado</span>';
+                }
+                
+                // Botones de acción
+                let actionButtons = '';
+                if (condition.status === 'pendiente') {
+                    actionButtons = `
+                        <button class="action-btn btn-primary" onclick="changeStatus(${condition.id}, 'en proceso')">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="action-btn btn-safe" onclick="changeStatus(${condition.id}, 'reparado')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    `;
+                } else if (condition.status === 'en proceso') {
+                    actionButtons = `
+                        <button class="action-btn btn-safe" onclick="changeStatus(${condition.id}, 'reparado')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="action-btn btn-warning" onclick="changeStatus(${condition.id}, 'pendiente')">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    `;
+                } else {
+                    actionButtons = `
+                        <button class="action-btn btn-warning" onclick="changeStatus(${condition.id}, 'pendiente')">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    `;
+                }
+                
+                row.innerHTML = `
+                    <td>#${condition.id}</td>
+                    <td>${condition.description}</td>
+                    <td>${condition.location}</td>
+                    <td>${categoryNames[condition.category] || condition.category}</td>
+                    <td>${condition.date}</td>
+                    <td>${riskBadge}</td>
+                    <td>${statusBadge}</td>
+                    <td class="actions">${actionButtons}</td>
+                `;
+                
+                historyTable.appendChild(row);
+            });
+        }
+
+        // Cambiar el estado de una condición
+        function changeStatus(id, newStatus) {
+            const condition = unsafeConditions.find(c => c.id === id);
+            if (condition) {
+                condition.status = newStatus;
+                if (newStatus === 'reparado') {
+                    condition.repairedDate = new Date().toISOString().split('T')[0];
+                }
+                
+                // Actualizar todas las vistas
+                updateDashboard();
+                updateHistoryTable();
+                updateAnalysisChart();
+                updateRecommendations();
+                
+                alert(`Estado actualizado a: ${newStatus}`);
+            }
+        }
+
+        // Actualizar gráfico de análisis
+        function updateAnalysisChart() {
+            const analysisType = document.getElementById('analysis-type').value;
+            const ctx = document.getElementById('data-chart').getContext('2d');
+            
+            // Destruir gráfico anterior si existe
+            if (window.dataChart) {
+                window.dataChart.destroy();
+            }
+            
+            let labels = [];
+            let data = [];
+            let backgroundColor = [];
+            let borderColor = [];
+            
+            if (analysisType === 'category') {
+                // Agrupar por categoría
+                const categories = {};
+                unsafeConditions.forEach(condition => {
+                    const category = condition.category;
+                    categories[category] = (categories[category] || 0) + 1;
+                });
+                
+                labels = Object.keys(categories).map(key => {
+                    const categoryNames = {
+                        electricidad: "Eléctrico",
+                        mecanico: "Mecánico",
+                        alturas: "Alturas",
+                        quimico: "Químico",
+                        incendio: "Incendio",
+                        ergonomico: "Ergonómico",
+                        otro: "Otro"
+                    };
+                    return categoryNames[key] || key;
+                });
+                
+                data = Object.values(categories);
+                backgroundColor = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#34495e'];
+                borderColor = backgroundColor.map(color => color);
+                
+            } else if (analysisType === 'risk') {
+                // Agrupar por nivel de riesgo
+                const risks = {};
+                unsafeConditions.forEach(condition => {
+                    const risk = condition.riskLevel;
+                    risks[risk] = (risks[risk] || 0) + 1;
+                });
+                
+                labels = Object.keys(risks).map(key => {
+                    const riskNames = {
+                        bajo: "Bajo",
+                        medio: "Medio",
+                        alto: "Alto",
+                        critico: "Crítico"
+                    };
+                    return riskNames[key] || key;
+                });
+                
+                data = Object.values(risks);
+                backgroundColor = ['#2ecc71', '#f39c12', '#e74c3c', '#c0392b'];
+                borderColor = backgroundColor.map(color => color);
+                
+            } else if (analysisType === 'status') {
+                // Agrupar por estado
+                const statuses = {};
+                unsafeConditions.forEach(condition => {
+                    const status = condition.status;
+                    statuses[status] = (statuses[status] || 0) + 1;
+                });
+                
+                labels = Object.keys(statuses).map(key => {
+                    const statusNames = {
+                        pendiente: "Pendiente",
+                        'en proceso': "En Proceso",
+                        reparado: "Reparado"
+                    };
+                    return statusNames[key] || key;
+                });
+                
+                data = Object.values(statuses);
+                backgroundColor = ['#f39c12', '#3498db', '#2ecc71'];
+                borderColor = backgroundColor.map(color => color);
+                
+            } else if (analysisType === 'month') {
+                // Agrupar por mes (ejemplo simplificado)
+                labels = ['Sept', 'Oct', 'Nov'];
+                data = [2, 6, 4]; // Datos de ejemplo
+                backgroundColor = ['#3498db', '#2ecc71', '#9b59b6'];
+                borderColor = backgroundColor.map(color => color);
+            }
+            
+            window.dataChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Número de Condiciones',
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Actualizar tipo de análisis cuando cambie la selección
+            document.getElementById('analysis-type').addEventListener('change', updateAnalysisChart);
+            document.getElementById('time-period').addEventListener('change', updateAnalysisChart);
+        }
+
+        // Actualizar recomendaciones
+        function updateRecommendations() {
+            const recommendationsDiv = document.getElementById('recommendations');
+            
+            // Calcular estadísticas para recomendaciones
+            const total = unsafeConditions.length;
+            const pending = unsafeConditions.filter(c => c.status === 'pendiente').length;
+            const highRisk = unsafeConditions.filter(c => c.riskLevel === 'alto' || c.riskLevel === 'critico').length;
+            const highRiskPending = unsafeConditions.filter(c => 
+                (c.riskLevel === 'alto' || c.riskLevel === 'critico') && c.status === 'pendiente'
+            ).length;
+            
+            let recommendationsHTML = '';
+            
+            if (highRiskPending > 0) {
+                recommendationsHTML += `
+                    <div style="padding: 15px; background-color: rgba(231, 76, 60, 0.1); border-radius: 5px; margin-bottom: 15px;">
+                        <h3 style="color: #c0392b; margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i> Atención: Condiciones de alto riesgo pendientes</h3>
+                        <p>Existen <strong>${highRiskPending} condiciones de alto o crítico riesgo</strong> que aún no han sido reparadas. Se recomienda priorizar su atención inmediata.</p>
+                    </div>
+                `;
+            }
+            
+            if (pending / total > 0.5) {
+                recommendationsHTML += `
+                    <div style="padding: 15px; background-color: rgba(243, 156, 18, 0.1); border-radius: 5px; margin-bottom: 15px;">
+                        <h3 style="color: #e67e22; margin-bottom: 10px;"><i class="fas fa-clipboard-list"></i> Alto volumen de pendientes</h3>
+                        <p>El <strong>${Math.round((pending/total)*100)}% de las condiciones reportadas</strong> están pendientes de reparación. Considere asignar más recursos al mantenimiento preventivo.</p>
+                    </div>
+                `;
+            }
+            
+            // Categoría con más incidentes
+            const categories = {};
+            unsafeConditions.forEach(condition => {
+                categories[condition.category] = (categories[condition.category] || 0) + 1;
+            });
+            
+            let maxCategory = '';
+            let maxCount = 0;
+            for (const [category, count] of Object.entries(categories)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    maxCategory = category;
+                }
+            }
+            
+            const categoryNames = {
+                electricidad: "riesgo eléctrico",
+                mecanico: "riesgo mecánico",
+                alturas: "trabajo en alturas",
+                quimico: "riesgo químico",
+                incendio: "riesgo de incendio",
+                ergonomico: "riesgo ergonómico",
+                otro: "otros riesgos"
+            };
+            
+            if (maxCategory) {
+                recommendationsHTML += `
+                    <div style="padding: 15px; background-color: rgba(52, 152, 219, 0.1); border-radius: 5px; margin-bottom: 15px;">
+                        <h3 style="color: #2980b9; margin-bottom: 10px;"><i class="fas fa-chart-pie"></i> Área de mayor incidencia</h3>
+                        <p>La categoría con más condiciones reportadas es <strong>${categoryNames[maxCategory] || maxCategory}</strong> (${maxCount} reportes). Considere realizar capacitación específica en esta área.</p>
+                    </div>
+                `;
+            }
+            
+            // Tiempo promedio de reparación (ejemplo simplificado)
+            const repairedConditions = unsafeConditions.filter(c => c.status === 'reparado' && c.repairedDate);
+            if (repairedConditions.length > 0) {
+                let totalDays = 0;
+                repairedConditions.forEach(condition => {
+                    const reportDate = new Date(condition.date);
+                    const repairDate = new Date(condition.repairedDate);
+                    const diffTime = Math.abs(repairDate - reportDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    totalDays += diffDays;
+                });
+                
+                const avgDays = Math.round(totalDays / repairedConditions.length);
+                
+                recommendationsHTML += `
+                    <div style="padding: 15px; background-color: rgba(46, 204, 113, 0.1); border-radius: 5px;">
+                        <h3 style="color: #27ae60; margin-bottom: 10px;"><i class="fas fa-clock"></i> Tiempo de respuesta</h3>
+                        <p>El tiempo promedio de reparación es de <strong>${avgDays} días</strong>. Este indicador puede mejorarse mediante una mejor planificación del mantenimiento.</p>
+                    </div>
+                `;
+            }
+            
+            recommendationsDiv.innerHTML = recommendationsHTML;
+        }
+    </script>
+</body>
+</html>
