@@ -6,6 +6,8 @@
     <title>Sistema de Registro de Condiciones Inseguras</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 🧩 1️⃣ Pega esto en el <head> de tu HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -477,7 +479,7 @@
                             </div>
                             
                             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary" id="submit-btn">
                                     <i class="fas fa-save"></i> Guardar Registro
                                 </button>
                                 <button type="reset" class="btn">
@@ -605,8 +607,35 @@
     </div>
 
     <script>
-        // 🛠️ CAMBIO 1 — Base de datos con LocalStorage
-        let unsafeConditions = JSON.parse(localStorage.getItem("unsafeConditions")) || [];
+        // 🧩 2️⃣ Pega esto al inicio de tu <script>
+        const SUPABASE_URL = "https://lsmrwfkwqpvgqzzzbcbl.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_mIAklSCqvZDPwkpm1OVaYA_Ml_4OuUQ";
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 🧩 3️⃣ Reemplaza tu LocalStorage por Supabase
+        let unsafeConditions = [];
+
+        async function loadRisks(){
+            const { data, error } = await supabase
+                .from("risks")
+                .select("*")
+                .order("id", { ascending:false });
+
+            unsafeConditions = data || [];
+            render();
+        }
+
+        // Cargar datos al iniciar
+        loadRisks();
+
+        // Función para renderizar todas las vistas
+        function render() {
+            updateDashboard();
+            updateHistoryTable();
+            updateAnalysisChart();
+            updateRecommendations();
+        }
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
@@ -641,46 +670,54 @@
             });
 
             // Manejar el formulario de registro
-            document.getElementById('report-form').addEventListener('submit', function(e) {
+            document.getElementById('report-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                // Obtener valores del formulario
-                const description = document.getElementById('description').value;
-                const location = document.getElementById('location').value;
-                const category = document.getElementById('category').value;
-                const riskLevel = document.getElementById('risk-level').value;
+                // Deshabilitar botón para evitar doble envío
+                const submitBtn = document.getElementById('submit-btn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
                 
-                // Crear nuevo registro
-                const newCondition = {
-                    id: unsafeConditions.length + 1,
-                    description: description,
-                    location: location,
-                    category: category,
-                    riskLevel: riskLevel,
-                    date: new Date().toISOString().split('T')[0],
-                    status: "pendiente",
-                    repairedDate: null,
-                    reportedBy: "Usuario Actual"
-                };
-                
-                unsafeConditions.unshift(newCondition);
-                
-                // 🛠️ CAMBIO 2 — Guardar en LocalStorage
-                localStorage.setItem("unsafeConditions", JSON.stringify(unsafeConditions));
-                
-                // Mostrar mensaje de éxito
-                alert('¡Condición insegura registrada exitosamente!');
-                
-                // Limpiar formulario
-                this.reset();
-                
-                // Actualizar dashboard si está visible
-                if (document.getElementById('dashboard-page').style.display !== 'none') {
-                    updateDashboard();
+                try {
+                    // Obtener valores del formulario
+                    const description = document.getElementById('description').value;
+                    const location = document.getElementById('location').value;
+                    const category = document.getElementById('category').value;
+                    const riskLevel = document.getElementById('risk-level').value;
+                    
+                    // 🧩 4️⃣ Guardar en Supabase
+                    const { error } = await supabase.from("risks").insert([{
+                        description,
+                        location,
+                        category,
+                        risk_level: riskLevel,
+                        status: "pendiente",
+                        date: new Date().toISOString().split("T")[0]
+                    }]);
+
+                    if (error) throw error;
+
+                    // Recargar datos desde Supabase
+                    await loadRisks();
+                    
+                    // Mostrar mensaje de éxito
+                    alert('¡Condición insegura registrada exitosamente!');
+                    
+                    // Limpiar formulario
+                    this.reset();
+                    
+                    // Ir al dashboard
+                    document.querySelector('.nav-menu a[data-page="dashboard"]').click();
+                    
+                } catch (error) {
+                    console.error('Error al guardar:', error);
+                    alert('Error al guardar el registro. Por favor, intente nuevamente.');
+                } finally {
+                    // Restaurar botón
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
                 }
-                
-                // Ir al dashboard
-                document.querySelector('.nav-menu a[data-page="dashboard"]').click();
             });
 
             // Filtros para la tabla de historial
@@ -723,12 +760,6 @@
             document.getElementById('generate-pending').addEventListener('click', function() {
                 alert('Reporte de pendientes generado y descargado como PDF.');
             });
-
-            // Inicializar dashboard
-            updateDashboard();
-            updateHistoryTable();
-            updateAnalysisChart();
-            updateRecommendations();
         });
 
         // Actualizar el dashboard
@@ -780,9 +811,9 @@
                 
                 row.innerHTML = `
                     <td>#${condition.id}</td>
-                    <td>${condition.description.substring(0, 50)}...</td>
-                    <td>${condition.location}</td>
-                    <td>${condition.date}</td>
+                    <td>${condition.description ? condition.description.substring(0, 50) + '...' : ''}</td>
+                    <td>${condition.location || ''}</td>
+                    <td>${condition.date || ''}</td>
                     <td>${statusBadge}</td>
                 `;
                 
@@ -825,11 +856,11 @@
                 
                 // Obtener etiqueta de riesgo
                 let riskBadge = '';
-                if (condition.riskLevel === 'bajo') {
+                if (condition.risk_level === 'bajo') {
                     riskBadge = '<span style="color:#27ae60; font-weight:bold;">Bajo</span>';
-                } else if (condition.riskLevel === 'medio') {
+                } else if (condition.risk_level === 'medio') {
                     riskBadge = '<span style="color:#f39c12; font-weight:bold;">Medio</span>';
-                } else if (condition.riskLevel === 'alto') {
+                } else if (condition.risk_level === 'alto') {
                     riskBadge = '<span style="color:#e74c3c; font-weight:bold;">Alto</span>';
                 } else {
                     riskBadge = '<span style="color:#c0392b; font-weight:bold;">Crítico</span>';
@@ -875,10 +906,10 @@
                 
                 row.innerHTML = `
                     <td>#${condition.id}</td>
-                    <td>${condition.description}</td>
-                    <td>${condition.location}</td>
-                    <td>${categoryNames[condition.category] || condition.category}</td>
-                    <td>${condition.date}</td>
+                    <td>${condition.description || ''}</td>
+                    <td>${condition.location || ''}</td>
+                    <td>${categoryNames[condition.category] || condition.category || ''}</td>
+                    <td>${condition.date || ''}</td>
                     <td>${riskBadge}</td>
                     <td>${statusBadge}</td>
                     <td class="actions">${actionButtons}</td>
@@ -888,25 +919,23 @@
             });
         }
 
-        // Cambiar el estado de una condición
-        function changeStatus(id, newStatus) {
-            const condition = unsafeConditions.find(c => c.id === id);
-            if (condition) {
-                condition.status = newStatus;
-                if (newStatus === 'reparado') {
-                    condition.repairedDate = new Date().toISOString().split('T')[0];
-                }
-                
-                // 🛠️ CAMBIO 3 — Guardar en LocalStorage
-                localStorage.setItem("unsafeConditions", JSON.stringify(unsafeConditions));
-                
-                // Actualizar todas las vistas
-                updateDashboard();
-                updateHistoryTable();
-                updateAnalysisChart();
-                updateRecommendations();
+        // 🧩 5️⃣ Para cambiar el estado (solucionado / pendiente)
+        async function changeStatus(id, newStatus){
+            try {
+                const { error } = await supabase
+                    .from("risks")
+                    .update({ status: newStatus })
+                    .eq("id", id);
+
+                if (error) throw error;
+
+                // Recargar datos desde Supabase
+                await loadRisks();
                 
                 alert(`Estado actualizado a: ${newStatus}`);
+            } catch (error) {
+                console.error('Error al actualizar estado:', error);
+                alert('Error al actualizar el estado. Por favor, intente nuevamente.');
             }
         }
 
@@ -930,7 +959,9 @@
                 const categories = {};
                 unsafeConditions.forEach(condition => {
                     const category = condition.category;
-                    categories[category] = (categories[category] || 0) + 1;
+                    if (category) {
+                        categories[category] = (categories[category] || 0) + 1;
+                    }
                 });
                 
                 labels = Object.keys(categories).map(key => {
@@ -954,8 +985,10 @@
                 // Agrupar por nivel de riesgo
                 const risks = {};
                 unsafeConditions.forEach(condition => {
-                    const risk = condition.riskLevel;
-                    risks[risk] = (risks[risk] || 0) + 1;
+                    const risk = condition.risk_level;
+                    if (risk) {
+                        risks[risk] = (risks[risk] || 0) + 1;
+                    }
                 });
                 
                 labels = Object.keys(risks).map(key => {
@@ -977,7 +1010,9 @@
                 const statuses = {};
                 unsafeConditions.forEach(condition => {
                     const status = condition.status;
-                    statuses[status] = (statuses[status] || 0) + 1;
+                    if (status) {
+                        statuses[status] = (statuses[status] || 0) + 1;
+                    }
                 });
                 
                 labels = Object.keys(statuses).map(key => {
@@ -994,9 +1029,13 @@
                 borderColor = backgroundColor.map(color => color);
                 
             } else if (analysisType === 'month') {
-                // Agrupar por mes (ejemplo simplificado)
-                labels = ['Sept', 'Oct', 'Nov'];
-                data = [2, 6, 4]; // Datos de ejemplo
+                // Agrupar por mes
+                labels = ['Último mes', 'Mes anterior', 'Hace 2 meses'];
+                data = [unsafeConditions.filter(c => {
+                    const date = new Date(c.date);
+                    const now = new Date();
+                    return date.getMonth() === now.getMonth();
+                }).length, 0, 0];
                 backgroundColor = ['#3498db', '#2ecc71', '#9b59b6'];
                 borderColor = backgroundColor.map(color => color);
             }
@@ -1039,85 +1078,74 @@
             // Calcular estadísticas para recomendaciones
             const total = unsafeConditions.length;
             const pending = unsafeConditions.filter(c => c.status === 'pendiente').length;
-            const highRisk = unsafeConditions.filter(c => c.riskLevel === 'alto' || c.riskLevel === 'critico').length;
+            const highRisk = unsafeConditions.filter(c => c.risk_level === 'alto' || c.risk_level === 'critico').length;
             const highRiskPending = unsafeConditions.filter(c => 
-                (c.riskLevel === 'alto' || c.riskLevel === 'critico') && c.status === 'pendiente'
+                (c.risk_level === 'alto' || c.risk_level === 'critico') && c.status === 'pendiente'
             ).length;
             
             let recommendationsHTML = '';
             
-            if (highRiskPending > 0) {
-                recommendationsHTML += `
-                    <div style="padding: 15px; background-color: rgba(231, 76, 60, 0.1); border-radius: 5px; margin-bottom: 15px;">
-                        <h3 style="color: #c0392b; margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i> Atención: Condiciones de alto riesgo pendientes</h3>
-                        <p>Existen <strong>${highRiskPending} condiciones de alto o crítico riesgo</strong> que aún no han sido reparadas. Se recomienda priorizar su atención inmediata.</p>
+            if (total === 0) {
+                recommendationsHTML = `
+                    <div style="padding: 15px; background-color: rgba(52, 152, 219, 0.1); border-radius: 5px;">
+                        <h3 style="color: #2980b9; margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Bienvenido al sistema</h3>
+                        <p>No hay registros aún. Comienza registrando la primera condición insegura usando el formulario de "Nuevo Registro".</p>
                     </div>
                 `;
-            }
-            
-            if (pending / total > 0.5) {
-                recommendationsHTML += `
-                    <div style="padding: 15px; background-color: rgba(243, 156, 18, 0.1); border-radius: 5px; margin-bottom: 15px;">
-                        <h3 style="color: #e67e22; margin-bottom: 10px;"><i class="fas fa-clipboard-list"></i> Alto volumen de pendientes</h3>
-                        <p>El <strong>${Math.round((pending/total)*100)}% de las condiciones reportadas</strong> están pendientes de reparación. Considere asignar más recursos al mantenimiento preventivo.</p>
-                    </div>
-                `;
-            }
-            
-            // Categoría con más incidentes
-            const categories = {};
-            unsafeConditions.forEach(condition => {
-                categories[condition.category] = (categories[condition.category] || 0) + 1;
-            });
-            
-            let maxCategory = '';
-            let maxCount = 0;
-            for (const [category, count] of Object.entries(categories)) {
-                if (count > maxCount) {
-                    maxCount = count;
-                    maxCategory = category;
+            } else {
+                if (highRiskPending > 0) {
+                    recommendationsHTML += `
+                        <div style="padding: 15px; background-color: rgba(231, 76, 60, 0.1); border-radius: 5px; margin-bottom: 15px;">
+                            <h3 style="color: #c0392b; margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i> Atención: Condiciones de alto riesgo pendientes</h3>
+                            <p>Existen <strong>${highRiskPending} condiciones de alto o crítico riesgo</strong> que aún no han sido reparadas. Se recomienda priorizar su atención inmediata.</p>
+                        </div>
+                    `;
                 }
-            }
-            
-            const categoryNames = {
-                electricidad: "riesgo eléctrico",
-                mecanico: "riesgo mecánico",
-                alturas: "trabajo en alturas",
-                quimico: "riesgo químico",
-                incendio: "riesgo de incendio",
-                ergonomico: "riesgo ergonómico",
-                otro: "otros riesgos"
-            };
-            
-            if (maxCategory) {
-                recommendationsHTML += `
-                    <div style="padding: 15px; background-color: rgba(52, 152, 219, 0.1); border-radius: 5px; margin-bottom: 15px;">
-                        <h3 style="color: #2980b9; margin-bottom: 10px;"><i class="fas fa-chart-pie"></i> Área de mayor incidencia</h3>
-                        <p>La categoría con más condiciones reportadas es <strong>${categoryNames[maxCategory] || maxCategory}</strong> (${maxCount} reportes). Considere realizar capacitación específica en esta área.</p>
-                    </div>
-                `;
-            }
-            
-            // Tiempo promedio de reparación (ejemplo simplificado)
-            const repairedConditions = unsafeConditions.filter(c => c.status === 'reparado' && c.repairedDate);
-            if (repairedConditions.length > 0) {
-                let totalDays = 0;
-                repairedConditions.forEach(condition => {
-                    const reportDate = new Date(condition.date);
-                    const repairDate = new Date(condition.repairedDate);
-                    const diffTime = Math.abs(repairDate - reportDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    totalDays += diffDays;
+                
+                if (pending / total > 0.5) {
+                    recommendationsHTML += `
+                        <div style="padding: 15px; background-color: rgba(243, 156, 18, 0.1); border-radius: 5px; margin-bottom: 15px;">
+                            <h3 style="color: #e67e22; margin-bottom: 10px;"><i class="fas fa-clipboard-list"></i> Alto volumen de pendientes</h3>
+                            <p>El <strong>${Math.round((pending/total)*100)}% de las condiciones reportadas</strong> están pendientes de reparación. Considere asignar más recursos al mantenimiento preventivo.</p>
+                        </div>
+                    `;
+                }
+                
+                // Categoría con más incidentes
+                const categories = {};
+                unsafeConditions.forEach(condition => {
+                    if (condition.category) {
+                        categories[condition.category] = (categories[condition.category] || 0) + 1;
+                    }
                 });
                 
-                const avgDays = Math.round(totalDays / repairedConditions.length);
+                let maxCategory = '';
+                let maxCount = 0;
+                for (const [category, count] of Object.entries(categories)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        maxCategory = category;
+                    }
+                }
                 
-                recommendationsHTML += `
-                    <div style="padding: 15px; background-color: rgba(46, 204, 113, 0.1); border-radius: 5px;">
-                        <h3 style="color: #27ae60; margin-bottom: 10px;"><i class="fas fa-clock"></i> Tiempo de respuesta</h3>
-                        <p>El tiempo promedio de reparación es de <strong>${avgDays} días</strong>. Este indicador puede mejorarse mediante una mejor planificación del mantenimiento.</p>
-                    </div>
-                `;
+                const categoryNames = {
+                    electricidad: "riesgo eléctrico",
+                    mecanico: "riesgo mecánico",
+                    alturas: "trabajo en alturas",
+                    quimico: "riesgo químico",
+                    incendio: "riesgo de incendio",
+                    ergonomico: "riesgo ergonómico",
+                    otro: "otros riesgos"
+                };
+                
+                if (maxCategory) {
+                    recommendationsHTML += `
+                        <div style="padding: 15px; background-color: rgba(52, 152, 219, 0.1); border-radius: 5px; margin-bottom: 15px;">
+                            <h3 style="color: #2980b9; margin-bottom: 10px;"><i class="fas fa-chart-pie"></i> Área de mayor incidencia</h3>
+                            <p>La categoría con más condiciones reportadas es <strong>${categoryNames[maxCategory] || maxCategory}</strong> (${maxCount} reportes). Considere realizar capacitación específica en esta área.</p>
+                        </div>
+                    `;
+                }
             }
             
             recommendationsDiv.innerHTML = recommendationsHTML;
