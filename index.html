@@ -6,8 +6,6 @@
     <title>Sistema de Registro de Condiciones Inseguras</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- 🧩 1️⃣ Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -607,40 +605,8 @@
     </div>
 
     <script>
-        // 🧩 2️⃣ Configuración de Supabase
-        const SUPABASE_URL = "https://lsmrwfkwqpvgqzzzbcbl.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_mIAklSCqvZDPwkpm1OVaYA_Ml_4OuUQ";
-
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // 🧩 3️⃣ Reemplazar LocalStorage por Supabase
-        let unsafeConditions = [];
-
-        async function loadRisks(){
-            const { data, error } = await supabase
-                .from("risks")
-                .select("*")
-                .order("id", { ascending:false });
-
-            unsafeConditions = data || [];
-            render();
-        }
-
-        loadRisks();
-
-        // Función para renderizar todas las vistas
-        function render() {
-            if (document.getElementById('dashboard-page').style.display !== 'none') {
-                updateDashboard();
-            }
-            if (document.getElementById('historial-page').style.display !== 'none') {
-                updateHistoryTable();
-            }
-            if (document.getElementById('analisis-page').style.display !== 'none') {
-                updateAnalysisChart();
-                updateRecommendations();
-            }
-        }
+        // 🛠️ CAMBIO 1 — Base de datos con LocalStorage
+        let unsafeConditions = JSON.parse(localStorage.getItem("unsafeConditions")) || [];
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
@@ -675,7 +641,7 @@
             });
 
             // Manejar el formulario de registro
-            document.getElementById('report-form').addEventListener('submit', async function(e) {
+            document.getElementById('report-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 // Obtener valores del formulario
@@ -684,31 +650,37 @@
                 const category = document.getElementById('category').value;
                 const riskLevel = document.getElementById('risk-level').value;
                 
-                // 🧩 4️⃣ Guardar en Supabase
-                try {
-                    await supabase.from("risks").insert([{
-                        description,
-                        location,
-                        category,
-                        risk_level: riskLevel,
-                        status: "pendiente",
-                        date: new Date().toISOString().split("T")[0]
-                    }]);
-
-                    loadRisks();
-                    
-                    // Mostrar mensaje de éxito
-                    alert('¡Condición insegura registrada exitosamente!');
-                    
-                    // Limpiar formulario
-                    this.reset();
-                    
-                    // Ir al dashboard
-                    document.querySelector('.nav-menu a[data-page="dashboard"]').click();
-                } catch (error) {
-                    console.error('Error al guardar:', error);
-                    alert('Error al guardar el registro. Por favor, intente nuevamente.');
+                // Crear nuevo registro
+                const newCondition = {
+                    id: unsafeConditions.length + 1,
+                    description: description,
+                    location: location,
+                    category: category,
+                    riskLevel: riskLevel,
+                    date: new Date().toISOString().split('T')[0],
+                    status: "pendiente",
+                    repairedDate: null,
+                    reportedBy: "Usuario Actual"
+                };
+                
+                unsafeConditions.unshift(newCondition);
+                
+                // 🛠️ CAMBIO 2 — Guardar en LocalStorage
+                localStorage.setItem("unsafeConditions", JSON.stringify(unsafeConditions));
+                
+                // Mostrar mensaje de éxito
+                alert('¡Condición insegura registrada exitosamente!');
+                
+                // Limpiar formulario
+                this.reset();
+                
+                // Actualizar dashboard si está visible
+                if (document.getElementById('dashboard-page').style.display !== 'none') {
+                    updateDashboard();
                 }
+                
+                // Ir al dashboard
+                document.querySelector('.nav-menu a[data-page="dashboard"]').click();
             });
 
             // Filtros para la tabla de historial
@@ -751,6 +723,12 @@
             document.getElementById('generate-pending').addEventListener('click', function() {
                 alert('Reporte de pendientes generado y descargado como PDF.');
             });
+
+            // Inicializar dashboard
+            updateDashboard();
+            updateHistoryTable();
+            updateAnalysisChart();
+            updateRecommendations();
         });
 
         // Actualizar el dashboard
@@ -847,11 +825,11 @@
                 
                 // Obtener etiqueta de riesgo
                 let riskBadge = '';
-                if (condition.risk_level === 'bajo') {
+                if (condition.riskLevel === 'bajo') {
                     riskBadge = '<span style="color:#27ae60; font-weight:bold;">Bajo</span>';
-                } else if (condition.risk_level === 'medio') {
+                } else if (condition.riskLevel === 'medio') {
                     riskBadge = '<span style="color:#f39c12; font-weight:bold;">Medio</span>';
-                } else if (condition.risk_level === 'alto') {
+                } else if (condition.riskLevel === 'alto') {
                     riskBadge = '<span style="color:#e74c3c; font-weight:bold;">Alto</span>';
                 } else {
                     riskBadge = '<span style="color:#c0392b; font-weight:bold;">Crítico</span>';
@@ -910,19 +888,25 @@
             });
         }
 
-        // 🧩 5️⃣ Cambiar el estado de una condición
-        async function changeStatus(id, newStatus){
-            try {
-                await supabase
-                    .from("risks")
-                    .update({ status: newStatus })
-                    .eq("id", id);
-
-                loadRisks();
+        // Cambiar el estado de una condición
+        function changeStatus(id, newStatus) {
+            const condition = unsafeConditions.find(c => c.id === id);
+            if (condition) {
+                condition.status = newStatus;
+                if (newStatus === 'reparado') {
+                    condition.repairedDate = new Date().toISOString().split('T')[0];
+                }
+                
+                // 🛠️ CAMBIO 3 — Guardar en LocalStorage
+                localStorage.setItem("unsafeConditions", JSON.stringify(unsafeConditions));
+                
+                // Actualizar todas las vistas
+                updateDashboard();
+                updateHistoryTable();
+                updateAnalysisChart();
+                updateRecommendations();
+                
                 alert(`Estado actualizado a: ${newStatus}`);
-            } catch (error) {
-                console.error('Error al actualizar estado:', error);
-                alert('Error al actualizar el estado. Por favor, intente nuevamente.');
             }
         }
 
@@ -970,7 +954,7 @@
                 // Agrupar por nivel de riesgo
                 const risks = {};
                 unsafeConditions.forEach(condition => {
-                    const risk = condition.risk_level;
+                    const risk = condition.riskLevel;
                     risks[risk] = (risks[risk] || 0) + 1;
                 });
                 
@@ -1055,9 +1039,9 @@
             // Calcular estadísticas para recomendaciones
             const total = unsafeConditions.length;
             const pending = unsafeConditions.filter(c => c.status === 'pendiente').length;
-            const highRisk = unsafeConditions.filter(c => c.risk_level === 'alto' || c.risk_level === 'critico').length;
+            const highRisk = unsafeConditions.filter(c => c.riskLevel === 'alto' || c.riskLevel === 'critico').length;
             const highRiskPending = unsafeConditions.filter(c => 
-                (c.risk_level === 'alto' || c.risk_level === 'critico') && c.status === 'pendiente'
+                (c.riskLevel === 'alto' || c.riskLevel === 'critico') && c.status === 'pendiente'
             ).length;
             
             let recommendationsHTML = '';
@@ -1110,6 +1094,28 @@
                     <div style="padding: 15px; background-color: rgba(52, 152, 219, 0.1); border-radius: 5px; margin-bottom: 15px;">
                         <h3 style="color: #2980b9; margin-bottom: 10px;"><i class="fas fa-chart-pie"></i> Área de mayor incidencia</h3>
                         <p>La categoría con más condiciones reportadas es <strong>${categoryNames[maxCategory] || maxCategory}</strong> (${maxCount} reportes). Considere realizar capacitación específica en esta área.</p>
+                    </div>
+                `;
+            }
+            
+            // Tiempo promedio de reparación (ejemplo simplificado)
+            const repairedConditions = unsafeConditions.filter(c => c.status === 'reparado' && c.repairedDate);
+            if (repairedConditions.length > 0) {
+                let totalDays = 0;
+                repairedConditions.forEach(condition => {
+                    const reportDate = new Date(condition.date);
+                    const repairDate = new Date(condition.repairedDate);
+                    const diffTime = Math.abs(repairDate - reportDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    totalDays += diffDays;
+                });
+                
+                const avgDays = Math.round(totalDays / repairedConditions.length);
+                
+                recommendationsHTML += `
+                    <div style="padding: 15px; background-color: rgba(46, 204, 113, 0.1); border-radius: 5px;">
+                        <h3 style="color: #27ae60; margin-bottom: 10px;"><i class="fas fa-clock"></i> Tiempo de respuesta</h3>
+                        <p>El tiempo promedio de reparación es de <strong>${avgDays} días</strong>. Este indicador puede mejorarse mediante una mejor planificación del mantenimiento.</p>
                     </div>
                 `;
             }
